@@ -1,0 +1,10 @@
+apiVersion: v2
+name: my-app
+version: 1.0.0
+appVersion: 1.0.0
+description: A dummy chart for Helm chart keyless signing with Cosign example.
+keywords:
+  - devsecops
+  - cosign
+  - helm
+  - kubernetes

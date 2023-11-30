@@ -1,0 +1,2 @@
+Pushed: ttl.sh/charts/my-app:1.0.0
+Digest: sha256:07eadc88303da523e3030a2f4d4fb994dad25284b42842ab0fbbb1aa87df171a

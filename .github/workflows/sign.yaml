@@ -1,0 +1,48 @@
+name: Sign Helm chart artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+
+jobs:
+  sign:
+    name: Sign ${{ matrix.case.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+        - name: TGZ Helm chart artifact
+          sign: |
+            cosign sign-blob -y my-app-1.0.0.tgz \
+              --bundle my-app-1.0.0.tgz.cosign.bundle
+          verify: |
+            cosign verify-blob my-app-1.0.0.tgz \
+              --bundle my-app-1.0.0.tgz.cosign.bundle \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+              --certificate-identity "https://github.com/${GITHUB_WORKFLOW_REF}"
+        - name: OCI Helm chart artifact
+          sign: |
+            helm push my-app-1.0.0.tgz oci://ttl.sh/charts &> push-metadata.txt
+            CHART_DIGEST=$(awk '/Digest: /{print $2}' push-metadata.txt)
+            echo "CHART_DIGEST=${CHART_DIGEST}" | tee -a $GITHUB_ENV
+            cosign sign -y "ttl.sh/charts/my-app@${CHART_DIGEST}"
+          verify: |
+            cosign verify "ttl.sh/charts/my-app@${CHART_DIGEST}" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+              --certificate-identity "https://github.com/${GITHUB_WORKFLOW_REF}"
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+    - name: Setup Cosign
+      uses: sigstore/cosign-installer@main
+    - name: Create Helm chart package
+      run : helm package charts/my-app
+    - name: Sign Helm chart package
+      run : ${{ matrix.case.sign }}
+    - name: Verify Helm chart package
+      run : ${{ matrix.case.verify }}
